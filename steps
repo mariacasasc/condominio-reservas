@@ -1,0 +1,44 @@
+
+Objetivo del proyecto
+Diseñar y desplegar una aplicación web completa (interfaz + backend + base de datos) usando servicios en la nube, aplicando buenas prácticas de arquitectura, costos y seguridad básica. La app debe resolver un problema concreto y pequeño (ej. gestor de tareas, catálogo de productos, sistema de reservas, directorio de contactos).
+Resultado final esperado
+•	Una aplicación funcional, accesible por URL pública, con autenticación de usuarios.
+•	Un diagrama de arquitectura cloud (qué servicio hace qué y cómo se conectan).
+•	Un informe comparativo de costos y alternativas de proveedor.
+•	Un dashboard o interfaz con diseño propio (no la plantilla por defecto).
+Elección de plataforma
+Recomendación según tu perfil: empieza con Firebase (Google) para el prototipo por su curva de aprendizaje suave, y en la segunda mitad migra o compara con Microsoft Azure, ya que con GitHub Student tienes 100 USD en créditos — ideal para experimentar con App Service o Azure Static Web Apps sin gastar de tu bolsillo.
+Itinerario semana a semana
+Semanas	Fase	Actividades clave	Entregable
+1	Fundamentos	Repasar conceptos: IaaS/PaaS/SaaS, qué es un servidor, API REST, base de datos vs. base de datos en la nube. Activar GitHub Student Pack.	Glosario propio de 15 términos con tus palabras.
+2	Fundamentos	Crear cuentas en Firebase y Azure for Students. Explorar sus paneles. Desplegar una página estática de prueba (HTML/CSS) en Firebase Hosting.	Página estática publicada con URL pública.
+3	Definición del proyecto	Elegir el problema a resolver. Definir usuarios, funcionalidades mínimas (MVP) y flujo de uso.	Documento de alcance (1 página): problema, usuarios, 3-5 funcionalidades.
+4	Diseño UX/UI	Wireframes y prototipo en Figma de las pantallas principales (login, pantalla principal, formulario).	Prototipo navegable en Figma.
+5	Backend básico	Configurar Firestore (base de datos). Crear colecciones y probar lectura/escritura desde la consola.	Base de datos con datos de prueba.
+6	Backend básico	Aprender qué es una función serverless. Crear una Firebase Function simple (ej. validar un formulario).	Función desplegada y probada.
+7	Frontend	Construir la interfaz con el diseño de Figma (HTML/CSS/JS simple, o React si te animas). Conectar formularios a Firestore.	Frontend funcional conectado a la base de datos.
+8	Frontend	Implementar las pantallas restantes. Asegurar que el flujo completo funcione de principio a fin.	Flujo de usuario completo funcionando.
+9	Autenticación	Implementar login con Firebase Authentication (email o Google).	Sistema de login funcional.
+10	Autenticación	Reglas de seguridad en Firestore: que cada usuario solo vea sus propios datos.	Reglas de seguridad documentadas y probadas.
+11	Migración / comparación cloud	Desplegar una segunda versión (o solo el frontend) en Azure Static Web Apps usando los créditos de GitHub Student.	Segunda versión desplegada en Azure.
+12	Migración / comparación cloud	Comparar Firebase vs Azure: costos, facilidad, límites del free tier, tiempos de despliegue.	Tabla comparativa de 2 páginas.
+13	Arquitectura	Dibujar el diagrama de arquitectura completo (draw.io o Figma): servicios, flujo de datos, usuarios.	Diagrama de arquitectura.
+14	Seguridad y buenas prácticas	Revisar variables de entorno, no exponer llaves API en el código, configurar dominio propio (Namecheap gratis con GitHub Student).	Checklist de seguridad aplicado + dominio propio.
+15	Pulido UX/UI	Revisar accesibilidad (contraste, tamaños de fuente), estados de carga, mensajes de error amigables.	Interfaz pulida, capturas antes/después.
+16	Pruebas	Pruebas de usuario básicas: pide a 2-3 personas que usen la app y anota fricciones.	Informe corto de usabilidad.
+17	Costos y escalabilidad	Estimar cuánto costaría la app con 100, 1000 y 10,000 usuarios. Identificar cuellos de botella.	Análisis de costos y escalabilidad.
+18	Documentación	Redactar documentación técnica: cómo está construido, decisiones tomadas y por qué.	Documento técnico completo.
+19	Cierre	Grabar video demo de 3-5 minutos mostrando la app y explicando la arquitectura.	Video demo.
+20	Cierre	Preparar presentación final y repositorio limpio en GitHub con README completo.	Repositorio + presentación final.
+Herramientas y plataformas
+Herramienta / Plataforma	Para qué se usa	Costo	GitHub Student
+Figma	Wireframes y prototipo de interfaz	Gratis (plan básico)	Figma Pro incluido
+Firebase (Google)	Hosting, base de datos, autenticación, funciones	Gratis (free tier generoso)	No aplica
+Microsoft Azure	Comparación de arquitectura, App Service	100 USD en créditos	Sí — Azure for Students
+Namecheap	Dominio propio para la app	Gratis 1 año	Sí — dominio .me gratis
+draw.io / diagrams.net	Diagrama de arquitectura	Gratis	No aplica
+GitHub	Repositorio y control de versiones	Gratis	GitHub Pro incluido
+Nota UX/UI
+• Sí conviene que diseñes tu propia interfaz aquí: es la parte donde más puedes destacar dado tu perfil. No uses la plantilla de ejemplo de Firebase tal cual — pásala por Figma primero.
+• Requisito mínimo para considerar 'buena UX/UI': prototipo en Figma antes de programar, contraste de color accesible (usa el plugin 'Contrast' de Figma), y al menos un flujo probado con una persona real.
+ 
