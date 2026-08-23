@@ -3,6 +3,8 @@ import type { ReservaRepository } from "@/domain/reserva/reserva.repository";
 import type { Reserva } from "@/domain/reserva/reserva.entity";
 import {
   cabeEnCapacidad,
+  estaDentroDeHorarioDisponible,
+  estaFechaBloqueada,
   puedeReservarse,
 } from "@/domain/area-comun/area-comun.entity";
 import {
@@ -54,6 +56,23 @@ export async function crearReserva(
   }
   if (!respetaDuracionMaxima(comando.horaInicio, comando.horaFin, area.duracionMaximaMinutos)) {
     throw new ReservaInvalidaError("La reserva excede la duración máxima permitida");
+  }
+
+  // Parsed manually (not `new Date(fecha).getDay()`) to avoid the server's
+  // timezone shifting a UTC-midnight parse into the wrong day.
+  const [anio, mes, dia] = comando.fecha.split("-").map(Number);
+  const diaSemana = new Date(anio, mes - 1, dia).getDay();
+  const horarios = await deps.areaComunRepository.horariosDisponibles(comando.areaId);
+  if (!estaDentroDeHorarioDisponible(horarios, diaSemana, comando.horaInicio, comando.horaFin)) {
+    throw new ReservaInvalidaError("El horario solicitado está fuera de la disponibilidad del área");
+  }
+
+  const [fechasDelArea, fechasGenerales] = await Promise.all([
+    deps.areaComunRepository.fechasBloqueadas(comando.areaId),
+    deps.areaComunRepository.fechasBloqueadasGenerales(),
+  ]);
+  if (estaFechaBloqueada(fechasDelArea, fechasGenerales, comando.fecha)) {
+    throw new ReservaInvalidaError("La fecha solicitada está bloqueada para este área");
   }
 
   const ahora = (deps.ahora ?? (() => new Date()))();

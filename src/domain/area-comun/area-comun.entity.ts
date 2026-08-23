@@ -44,3 +44,27 @@ export function cabeEnCapacidad(area: AreaComun, cantidadPersonas: number): bool
 export function horarioValido(horario: Pick<HorarioDisponible, "horaInicio" | "horaFin">): boolean {
   return horario.horaInicio < horario.horaFin;
 }
+
+/** Domain rule: the requested slot must fit entirely within one of the area's recurring weekly horarios for that day. */
+export function estaDentroDeHorarioDisponible(
+  horarios: HorarioDisponible[],
+  diaSemana: number,
+  horaInicio: string,
+  horaFin: string,
+): boolean {
+  return horarios.some(
+    (horario) =>
+      horario.diaSemana === diaSemana &&
+      horaInicio >= horario.horaInicio &&
+      horaFin <= horario.horaFin,
+  );
+}
+
+/** Domain rule: a fecha is blocked if it's blocked for this specific area or condominium-wide. */
+export function estaFechaBloqueada(
+  fechasDelArea: FechaBloqueada[],
+  fechasGenerales: FechaBloqueada[],
+  fecha: string,
+): boolean {
+  return [...fechasDelArea, ...fechasGenerales].some((bloqueo) => bloqueo.fecha === fecha);
+}

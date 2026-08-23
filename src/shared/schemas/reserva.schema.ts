@@ -8,7 +8,7 @@ export const crearReservaSchema = z.object({
   fecha: z.string().regex(fechaRegex, { message: "Formato de fecha inválido (YYYY-MM-DD)" }),
   horaInicio: z.string().regex(horaRegex, { message: "Formato de hora inválido (HH:mm)" }),
   horaFin: z.string().regex(horaRegex, { message: "Formato de hora inválido (HH:mm)" }),
-  cantidadPersonas: z.number().int().positive(),
+  cantidadPersonas: z.coerce.number().int().positive(),
   notas: z.string().max(500).optional(),
 });
 
