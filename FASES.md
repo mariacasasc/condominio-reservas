@@ -176,7 +176,15 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 - Limitación conocida documentada en el código: un bloqueo condominio-wide no tiene `condominio_id` propio en el schema (una sola fila hoy), así que no se valida contra el condominio del gerente al eliminarlo — se resuelve en la Fase 7 (multi-condominio real).
 - Verificado de punta a punta contra Postgres real: alta de área nueva, edición de sus datos, activar/desactivar reflejado en el listado, alta y baja de horarios, y alta/baja de fechas bloqueadas (tanto específicas de un área como de todo el condominio, confirmando que estas últimas aparecen en todas las áreas).
 
-**Lo que todavía NO existe (por diseño, es de fases siguientes):** flujo de reserva del huésped, aprobación de reservas, notificaciones (envío real de email), dashboard, multi-condominio activo, CI/CD.
+### ✅ Fase 3 — Flujo de reserva (huésped) (completada y verificada)
+
+- Casos de uso nuevos: `listarAreasComunesDisponibles` (filtra `activa===true`, regla de negocio de quién puede reservar) y `listarMisReservas` (wrapper trivial sobre `listarPorUsuario`).
+- `crearReserva` ampliado con dos validaciones de dominio que faltaban: `estaDentroDeHorarioDisponible` (el slot debe caer dentro de un `horarioDisponible` recurrente del día de semana correspondiente) y `estaFechaBloqueada` (contra bloqueos del área o de todo el condominio). Nuevas reglas puras en `domain/area-comun/area-comun.entity.ts`. Día de semana calculado parseando los componentes de `fecha` manualmente (no `new Date(fecha).getDay()`) para evitar corrimientos de timezone en el server.
+- UI: `/huesped/areas-comunes` (catálogo de áreas activas), `/huesped/areas-comunes/[id]/reservar` (formulario con fecha/hora/cantidad/notas, muestra los horarios disponibles del área como ayuda ya que no hay librería de date-picker instalada), `/huesped/mis-reservas` (historial con badge de estado). `HuespedNav` agregado al layout; home de `/huesped` con accesos directos.
+- `crearReservaSchema.cantidadPersonas` pasado a `z.coerce.number()` (llega como string desde `FormData`).
+- Verificado de punta a punta contra Postgres real: intento de reserva sin horarios configurados rechazado con el mensaje correcto; gerente agrega un horario; huésped reserva dentro de ese horario y la reserva queda `pendiente`, visible en `/huesped/mis-reservas`.
+
+**Lo que todavía NO existe (por diseño, es de fases siguientes):** aprobación de reservas, cancelación de una reserva por el propio huésped, notificaciones (envío real de email), dashboard, multi-condominio activo, CI/CD.
 
 ---
 
@@ -184,7 +192,7 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 
 Cada fase es un incremento entregable. La arquitectura no cambia entre fases — solo crece el número de entidades, casos de uso y páginas.
 
-> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1 y 2 completadas. Ninguna fase 3–9 tiene código todavía (no hay server actions para `crear-reserva`/`aprobar-reserva`, aunque esos dos casos de uso ya están escritos en `application/`). **Seguimos con la Fase 3 — Flujo de reserva (huésped).**
+> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2 y 3 completadas. Ninguna fase 4–9 tiene código todavía (no hay server action para `aprobar-reserva`, aunque ese caso de uso ya está escrito en `application/`). **Seguimos con la Fase 4 — Aprobación de reservas (gerente).**
 
 ### ✅ Fase 1 — Gestión de usuarios (completada)
 
@@ -211,7 +219,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 0 (el repositorio y schema ya existen; falta la UI de escritura).
 **Definición de terminado:** un gerente puede crear un área nueva con su tipo, capacidad y reglas, editarla y desactivarla, todo desde la UI.
 
-### ⬜ Fase 3 — Flujo de reserva (huésped) (siguiente)
+### ✅ Fase 3 — Flujo de reserva (huésped) (completada)
 
 **Objetivo:** un huésped ve disponibilidad real y reserva.
 
@@ -223,7 +231,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 2 (sin horarios/bloqueos configurables no se puede calcular disponibilidad real).
 **Definición de terminado:** un huésped puede ver franjas disponibles reales y crear una reserva que queda en estado `pendiente`.
 
-### ⬜ Fase 4 — Aprobación de reservas (gerente)
+### ⬜ Fase 4 — Aprobación de reservas (gerente) (siguiente)
 
 **Objetivo:** cerrar el ciclo de vida de la reserva.
 
