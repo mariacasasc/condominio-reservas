@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { auth } from "@/infrastructure/auth/auth";
 import { listarAreasComunes } from "@/application/areas-comunes/listar-areas-comunes";
 import { DrizzleAreaComunRepository } from "@/infrastructure/db/repositories/area-comun.repository.drizzle";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -20,11 +22,16 @@ export default async function GerenteAreasComunesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Áreas comunes</h1>
-        <p className="text-sm text-muted-foreground">
-          Espacios disponibles para reserva en tu condominio.
-        </p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Áreas comunes</h1>
+          <p className="text-sm text-muted-foreground">
+            Espacios disponibles para reserva en tu condominio.
+          </p>
+        </div>
+        <Button asChild size="sm">
+          <Link href="/gerente/areas-comunes/nueva">Nueva área</Link>
+        </Button>
       </div>
 
       {areas.length === 0 ? (
@@ -52,6 +59,12 @@ export default async function GerenteAreasComunesPage() {
                   <li>Anticipación mínima: {area.anticipacionMinimaHoras} horas</li>
                   <li>Anticipación máxima: {area.anticipacionMaximaDias} días</li>
                 </ul>
+                <Link
+                  href={`/gerente/areas-comunes/${area.id}/editar`}
+                  className="inline-block text-sm font-medium text-primary hover:underline"
+                >
+                  Editar
+                </Link>
               </CardContent>
             </Card>
           ))}

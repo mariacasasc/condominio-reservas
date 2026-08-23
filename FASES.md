@@ -167,7 +167,16 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 - Fix de seguridad: un usuario desactivado no puede loguearse (`autenticar-usuario.ts` valida `activo`).
 - Verificado de punta a punta contra Postgres real (no solo compilación): alta, duplicado, login del huésped nuevo, desactivación bloqueando el login, y el flujo completo de recuperación/restablecimiento de contraseña, incluyendo que un token ya usado no se puede reutilizar.
 
-**Lo que todavía NO existe (por diseño, es de fases siguientes):** alta/edición/baja de áreas comunes, gestión de horarios y bloqueos, flujo de reserva del huésped, aprobación de reservas, notificaciones (envío real de email), dashboard, multi-condominio activo, CI/CD.
+### ✅ Fase 2 — CRUD de áreas comunes (completada y verificada)
+
+- Puerto `AreaComunRepository` ampliado con `actualizar`, `actualizarActiva`, alta/baja de `horarios_disponibles` y `fechas_bloqueadas` (implementado en `DrizzleAreaComunRepository`).
+- Casos de uso: `crear-area-comun`, `editar-area-comun`, `activar-desactivar-area`, `agregar-horario-disponible` (valida `horaInicio < horaFin` vía la regla de dominio `horarioValido`), `eliminar-horario-disponible`, `agregar-fecha-bloqueada`, `eliminar-fecha-bloqueada`.
+- UI: `/gerente/areas-comunes/nueva` y `/gerente/areas-comunes/[id]/editar` (esta última con las subsecciones de horarios y fechas bloqueadas); link "Editar" y botón "Nueva área" agregados al listado en `/gerente`.
+- Un bloqueo de fecha puede ser específico de un área o "todo el condominio" (`areaId` nulo) — se gestiona con un checkbox en el mismo formulario y se lista en todas las áreas.
+- Limitación conocida documentada en el código: un bloqueo condominio-wide no tiene `condominio_id` propio en el schema (una sola fila hoy), así que no se valida contra el condominio del gerente al eliminarlo — se resuelve en la Fase 7 (multi-condominio real).
+- Verificado de punta a punta contra Postgres real: alta de área nueva, edición de sus datos, activar/desactivar reflejado en el listado, alta y baja de horarios, y alta/baja de fechas bloqueadas (tanto específicas de un área como de todo el condominio, confirmando que estas últimas aparecen en todas las áreas).
+
+**Lo que todavía NO existe (por diseño, es de fases siguientes):** flujo de reserva del huésped, aprobación de reservas, notificaciones (envío real de email), dashboard, multi-condominio activo, CI/CD.
 
 ---
 
@@ -175,7 +184,7 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 
 Cada fase es un incremento entregable. La arquitectura no cambia entre fases — solo crece el número de entidades, casos de uso y páginas.
 
-> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0 y 1 completadas. Ninguna fase 2–9 tiene código todavía (no existe CRUD de áreas comunes, ni server actions para `crear-reserva`/`aprobar-reserva`, aunque esos dos casos de uso ya están escritos en `application/`). **Seguimos con la Fase 2 — CRUD de áreas comunes.**
+> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1 y 2 completadas. Ninguna fase 3–9 tiene código todavía (no hay server actions para `crear-reserva`/`aprobar-reserva`, aunque esos dos casos de uso ya están escritos en `application/`). **Seguimos con la Fase 3 — Flujo de reserva (huésped).**
 
 ### ✅ Fase 1 — Gestión de usuarios (completada)
 
@@ -190,7 +199,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 0.
 **Definición de terminado:** un gerente puede crear un huésped desde la UI, ese huésped puede loguearse, y un gerente puede desactivarlo.
 
-### ⬜ Fase 2 — CRUD de áreas comunes (siguiente)
+### ✅ Fase 2 — CRUD de áreas comunes (completada)
 
 **Objetivo:** el gerente configura completamente el catálogo de espacios reservables. **Esto es lo que resuelve el "no hay opción de editar" que se observó en Fase 0.**
 
@@ -202,7 +211,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 0 (el repositorio y schema ya existen; falta la UI de escritura).
 **Definición de terminado:** un gerente puede crear un área nueva con su tipo, capacidad y reglas, editarla y desactivarla, todo desde la UI.
 
-### ⬜ Fase 3 — Flujo de reserva (huésped)
+### ⬜ Fase 3 — Flujo de reserva (huésped) (siguiente)
 
 **Objetivo:** un huésped ve disponibilidad real y reserva.
 

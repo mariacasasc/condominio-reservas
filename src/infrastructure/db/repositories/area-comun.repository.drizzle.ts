@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { db } from "@/infrastructure/db/client";
 import { areasComunes, fechasBloqueadas, horariosDisponibles } from "@/infrastructure/db/schema";
 import type {
@@ -74,6 +74,35 @@ export class DrizzleAreaComunRepository implements AreaComunRepository {
     return aDominio(fila);
   }
 
+  async actualizar(
+    id: string,
+    cambios: Omit<AreaComun, "id" | "condominioId" | "activa">,
+  ): Promise<AreaComun> {
+    const [fila] = await db
+      .update(areasComunes)
+      .set({
+        nombre: cambios.nombre,
+        tipo: cambios.tipo,
+        descripcion: cambios.descripcion,
+        capacidadMaxima: cambios.capacidadMaxima,
+        duracionMaximaMinutos: cambios.duracionMaximaMinutos,
+        anticipacionMinimaHoras: cambios.anticipacionMinimaHoras,
+        anticipacionMaximaDias: cambios.anticipacionMaximaDias,
+      })
+      .where(eq(areasComunes.id, id))
+      .returning();
+    return aDominio(fila);
+  }
+
+  async actualizarActiva(id: string, activa: boolean): Promise<AreaComun> {
+    const [fila] = await db
+      .update(areasComunes)
+      .set({ activa })
+      .where(eq(areasComunes.id, id))
+      .returning();
+    return aDominio(fila);
+  }
+
   async horariosDisponibles(areaId: string): Promise<HorarioDisponible[]> {
     const filas = await db
       .select()
@@ -82,11 +111,70 @@ export class DrizzleAreaComunRepository implements AreaComunRepository {
     return filas.map(horarioADominio);
   }
 
+  async buscarHorarioPorId(id: string): Promise<HorarioDisponible | null> {
+    const [fila] = await db
+      .select()
+      .from(horariosDisponibles)
+      .where(eq(horariosDisponibles.id, id))
+      .limit(1);
+    return fila ? horarioADominio(fila) : null;
+  }
+
+  async crearHorario(horario: Omit<HorarioDisponible, "id">): Promise<HorarioDisponible> {
+    const [fila] = await db
+      .insert(horariosDisponibles)
+      .values({
+        areaId: horario.areaId,
+        diaSemana: horario.diaSemana,
+        horaInicio: horario.horaInicio,
+        horaFin: horario.horaFin,
+      })
+      .returning();
+    return horarioADominio(fila);
+  }
+
+  async eliminarHorario(id: string): Promise<void> {
+    await db.delete(horariosDisponibles).where(eq(horariosDisponibles.id, id));
+  }
+
   async fechasBloqueadas(areaId: string): Promise<FechaBloqueada[]> {
     const filas = await db
       .select()
       .from(fechasBloqueadas)
       .where(eq(fechasBloqueadas.areaId, areaId));
     return filas.map(fechaBloqueadaADominio);
+  }
+
+  async fechasBloqueadasGenerales(): Promise<FechaBloqueada[]> {
+    const filas = await db
+      .select()
+      .from(fechasBloqueadas)
+      .where(isNull(fechasBloqueadas.areaId));
+    return filas.map(fechaBloqueadaADominio);
+  }
+
+  async buscarFechaBloqueadaPorId(id: string): Promise<FechaBloqueada | null> {
+    const [fila] = await db
+      .select()
+      .from(fechasBloqueadas)
+      .where(eq(fechasBloqueadas.id, id))
+      .limit(1);
+    return fila ? fechaBloqueadaADominio(fila) : null;
+  }
+
+  async crearFechaBloqueada(fecha: Omit<FechaBloqueada, "id">): Promise<FechaBloqueada> {
+    const [fila] = await db
+      .insert(fechasBloqueadas)
+      .values({
+        areaId: fecha.areaId,
+        fecha: fecha.fecha,
+        motivo: fecha.motivo,
+      })
+      .returning();
+    return fechaBloqueadaADominio(fila);
+  }
+
+  async eliminarFechaBloqueada(id: string): Promise<void> {
+    await db.delete(fechasBloqueadas).where(eq(fechasBloqueadas.id, id));
   }
 }

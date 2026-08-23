@@ -39,3 +39,8 @@ export function puedeReservarse(area: AreaComun): boolean {
 export function cabeEnCapacidad(area: AreaComun, cantidadPersonas: number): boolean {
   return cantidadPersonas > 0 && cantidadPersonas <= area.capacidadMaxima;
 }
+
+/** Domain rule: a horario's start must precede its end. */
+export function horarioValido(horario: Pick<HorarioDisponible, "horaInicio" | "horaFin">): boolean {
+  return horario.horaInicio < horario.horaFin;
+}
