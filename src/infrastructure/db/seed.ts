@@ -13,6 +13,7 @@ import {
   fechasBloqueadas,
   horariosDisponibles,
   reservas,
+  tokensRecuperacionPassword,
   usuarios,
 } from "@/infrastructure/db/schema";
 
@@ -31,6 +32,7 @@ async function seed() {
   // Wipe in FK-safe order so `pnpm db:seed` can be re-run without colliding
   // on the unique email constraint.
   await db.delete(reservas);
+  await db.delete(tokensRecuperacionPassword);
   await db.delete(fechasBloqueadas);
   await db.delete(horariosDisponibles);
   await db.delete(areasComunes);
@@ -66,6 +68,21 @@ async function seed() {
       email: "huesped@losrobles.cl",
       passwordHash: huespedPasswordHash,
       rol: "huesped",
+    })
+    .returning();
+
+  // Desactivado a propósito: permite verificar manualmente que un usuario
+  // inactivo no puede iniciar sesión (Fase 1).
+  const huespedInactivoPasswordHash = await hasher.hash("huesped1234");
+  const [huespedInactivo] = await db
+    .insert(usuarios)
+    .values({
+      condominioId: condominio.id,
+      nombre: "Camila Rojas",
+      email: "huesped.inactivo@losrobles.cl",
+      passwordHash: huespedInactivoPasswordHash,
+      rol: "huesped",
+      activo: false,
     })
     .returning();
 
@@ -108,6 +125,9 @@ async function seed() {
   console.log(`Condominio creado: ${condominio.nombre} (${condominio.id})`);
   console.log(`Gerente creado: ${gerente.email} / contraseña: gerente1234`);
   console.log(`Huésped creado: ${huesped.email} / contraseña: huesped1234`);
+  console.log(
+    `Huésped inactivo creado: ${huespedInactivo.email} / contraseña: huesped1234 (login debe fallar)`,
+  );
   console.log("3 áreas comunes creadas.");
 
   await queryClient.end();

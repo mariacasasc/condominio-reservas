@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { loginAction, type LoginState } from "@/app/(auth)/login/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +55,11 @@ export function LoginForm() {
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Ingresando..." : "Ingresar"}
           </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            <Link href="/recuperar-password" className="text-primary underline underline-offset-4">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>

@@ -11,6 +11,7 @@ export interface Usuario {
   email: string;
   passwordHash: string;
   rol: Rol;
+  activo: boolean;
   createdAt: Date;
 }
 
@@ -24,6 +25,7 @@ export function toUsuarioPublico(usuario: Usuario): UsuarioPublico {
     nombre: usuario.nombre,
     email: usuario.email,
     rol: usuario.rol,
+    activo: usuario.activo,
     createdAt: usuario.createdAt,
   };
 }

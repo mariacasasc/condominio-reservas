@@ -36,6 +36,23 @@ export const usuarios = pgTable("usuarios", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   rol: rolEnum("rol").notNull(),
+  activo: boolean("activo").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Single-use, time-boxed tokens for the "forgot password" flow. */
+export const tokensRecuperacionPassword = pgTable("tokens_recuperacion_password", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  usuarioId: uuid("usuario_id")
+    .notNull()
+    .references(() => usuarios.id, { onDelete: "cascade" }),
+  // SHA-256 (deterministic) rather than bcrypt: the token itself is already a
+  // high-entropy random value, so it doesn't need slow hashing — and a
+  // deterministic hash lets buscarPorTokenHash use an indexed equality
+  // lookup instead of comparing against every unused row.
+  tokenHash: text("token_hash").notNull(),
+  expiraEn: timestamp("expira_en", { withTimezone: true }).notNull(),
+  usadoEn: timestamp("usado_en", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

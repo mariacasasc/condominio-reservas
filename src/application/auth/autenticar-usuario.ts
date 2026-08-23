@@ -13,6 +13,7 @@ export interface AutenticarUsuarioComando {
 }
 
 export class CredencialesInvalidasError extends Error {}
+export class UsuarioInactivoError extends Error {}
 
 /**
  * Use case behind the Credentials provider's `authorize` callback. Returns a
@@ -30,6 +31,12 @@ export async function autenticarUsuario(
   const esValida = await deps.passwordHasher.verificar(comando.password, usuario.passwordHash);
   if (!esValida) {
     throw new CredencialesInvalidasError("Correo o contraseña incorrectos");
+  }
+
+  // Checked only after the password is confirmed — an inactive account's
+  // status shouldn't leak to someone who doesn't know the password.
+  if (!usuario.activo) {
+    throw new UsuarioInactivoError("Tu cuenta está desactivada");
   }
 
   return toUsuarioPublico(usuario);

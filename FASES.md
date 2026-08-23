@@ -158,7 +158,16 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 - Seed idempotente: 1 condominio, 1 gerente, 1 huésped, 3 áreas comunes.
 - Slice vertical funcionando de punta a punta: login → gerente ve el listado de áreas comunes (verificado contra Postgres real, no solo compilación).
 
-**Lo que todavía NO existe (por diseño, es de fases siguientes):** alta/edición/baja de áreas comunes, gestión de horarios y bloqueos, flujo de reserva del huésped, aprobación de reservas, notificaciones, dashboard, multi-condominio activo, CI/CD.
+### ✅ Fase 1 — Gestión de usuarios (completada y verificada)
+
+- Casos de uso `crear-huesped`, `listar-usuarios`, `desactivar-usuario` (dominio `usuario` ampliado con `activo`).
+- UI `/gerente/usuarios`: tabla con alta y baja, link agregado al nav de `/gerente`.
+- Recuperación de contraseña: token de un solo uso con expiración (30 min), hasheado (SHA-256) en tabla `tokens_recuperacion_password`; en esta fase el token se muestra/loguea, sin envío de email real (eso queda para la Fase 5).
+- Manejo de error amigable para email duplicado.
+- Fix de seguridad: un usuario desactivado no puede loguearse (`autenticar-usuario.ts` valida `activo`).
+- Verificado de punta a punta contra Postgres real (no solo compilación): alta, duplicado, login del huésped nuevo, desactivación bloqueando el login, y el flujo completo de recuperación/restablecimiento de contraseña, incluyendo que un token ya usado no se puede reutilizar.
+
+**Lo que todavía NO existe (por diseño, es de fases siguientes):** alta/edición/baja de áreas comunes, gestión de horarios y bloqueos, flujo de reserva del huésped, aprobación de reservas, notificaciones (envío real de email), dashboard, multi-condominio activo, CI/CD.
 
 ---
 
@@ -166,7 +175,9 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 
 Cada fase es un incremento entregable. La arquitectura no cambia entre fases — solo crece el número de entidades, casos de uso y páginas.
 
-### Fase 1 — Gestión de usuarios
+> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0 y 1 completadas. Ninguna fase 2–9 tiene código todavía (no existe CRUD de áreas comunes, ni server actions para `crear-reserva`/`aprobar-reserva`, aunque esos dos casos de uso ya están escritos en `application/`). **Seguimos con la Fase 2 — CRUD de áreas comunes.**
+
+### ✅ Fase 1 — Gestión de usuarios (completada)
 
 **Objetivo:** el gerente controla quién tiene acceso a la plataforma (no hay auto-registro público).
 
@@ -179,7 +190,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 0.
 **Definición de terminado:** un gerente puede crear un huésped desde la UI, ese huésped puede loguearse, y un gerente puede desactivarlo.
 
-### Fase 2 — CRUD de áreas comunes
+### ⬜ Fase 2 — CRUD de áreas comunes (siguiente)
 
 **Objetivo:** el gerente configura completamente el catálogo de espacios reservables. **Esto es lo que resuelve el "no hay opción de editar" que se observó en Fase 0.**
 
@@ -191,7 +202,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 0 (el repositorio y schema ya existen; falta la UI de escritura).
 **Definición de terminado:** un gerente puede crear un área nueva con su tipo, capacidad y reglas, editarla y desactivarla, todo desde la UI.
 
-### Fase 3 — Flujo de reserva (huésped)
+### ⬜ Fase 3 — Flujo de reserva (huésped)
 
 **Objetivo:** un huésped ve disponibilidad real y reserva.
 
@@ -203,7 +214,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 2 (sin horarios/bloqueos configurables no se puede calcular disponibilidad real).
 **Definición de terminado:** un huésped puede ver franjas disponibles reales y crear una reserva que queda en estado `pendiente`.
 
-### Fase 4 — Aprobación de reservas (gerente)
+### ⬜ Fase 4 — Aprobación de reservas (gerente)
 
 **Objetivo:** cerrar el ciclo de vida de la reserva.
 
@@ -214,7 +225,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 3.
 **Definición de terminado:** un gerente puede aprobar o rechazar una reserva pendiente y el huésped ve el cambio de estado reflejado.
 
-### Fase 5 — Notificaciones
+### ⬜ Fase 5 — Notificaciones
 
 - Puerto `NotificadorPort` en `domain`/`application`, implementación por email (Resend o Nodemailer) en `infrastructure/notificaciones`.
 - Eventos: reserva creada (avisa al gerente), reserva aprobada/rechazada (avisa al huésped).
@@ -222,14 +233,14 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 
 **Depende de:** Fase 4.
 
-### Fase 6 — Reportes y dashboard
+### ⬜ Fase 6 — Reportes y dashboard
 
 - Casos de uso de agregación (reservas por área/mes, tasa de aprobación/rechazo, ocupación).
 - UI: `/gerente/dashboard` con gráficos simples.
 
 **Depende de:** Fase 4 (necesita volumen de datos real).
 
-### Fase 7 — Multi-condominio real
+### ⬜ Fase 7 — Multi-condominio real
 
 - Selector de condominio en sesión (hoy `condominioId` viaja en el JWT pero solo hay uno).
 - Rol adicional posible: `super-admin` que administra condominios y gerentes.
@@ -237,7 +248,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 
 **Depende de:** Fases 1–4 estables (cambio transversal, mejor con el dominio maduro).
 
-### Fase 8 — Calidad, CI/CD y despliegue
+### ⬜ Fase 8 — Calidad, CI/CD y despliegue
 
 - Tests de integración con Postgres real (Testcontainers) para los repositorios Drizzle.
 - Tests de casos de uso con repositorios en memoria (fakes que implementan los puertos del dominio).
@@ -247,7 +258,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 
 **Depende de:** todas las fases funcionales anteriores.
 
-### Fase 9 — Pulido final
+### ⬜ Fase 9 — Pulido final
 
 - Auditoría de accesibilidad (teclado, foco, labels — el contraste de color ya está cuidado desde Fase 0).
 - Responsive real en mobile.

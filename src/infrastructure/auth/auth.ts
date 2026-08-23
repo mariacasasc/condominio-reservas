@@ -6,6 +6,7 @@ import { DrizzleUsuarioRepository } from "@/infrastructure/db/repositories/usuar
 import {
   autenticarUsuario,
   CredencialesInvalidasError,
+  UsuarioInactivoError,
 } from "@/application/auth/autenticar-usuario";
 import { loginSchema } from "@/shared/schemas/auth.schema";
 
@@ -37,7 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             condominioId: usuario.condominioId,
           };
         } catch (error) {
-          if (error instanceof CredencialesInvalidasError) {
+          if (error instanceof CredencialesInvalidasError || error instanceof UsuarioInactivoError) {
             return null;
           }
           throw error;
