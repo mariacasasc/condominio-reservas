@@ -208,13 +208,25 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 - Verificado de punta a punta contra Postgres real con un `NotificadorPort` de prueba (sin key de Resend configurada en este entorno): `crearReserva` dispara exactamente un email al gerente del condominio, `aprobarReserva` dispara exactamente un email al huésped dueño de la reserva, y ambos casos de uso devuelven la entidad esperada incluso si se simula que el envío falla. `pnpm tsc --noEmit`, `pnpm lint` y `pnpm test` sin errores. Base de datos restaurada a su estado de seed original después de la verificación.
 - **Pendiente para quien retome el proyecto:** configurar `RESEND_API_KEY` (y opcionalmente `RESEND_FROM_EMAIL` con un dominio propio verificado) en `.env` para que el envío real funcione — sin esa key, `ResendNotificador` fallará al enviar (el error queda logueado, no rompe el flujo de reservas).
 
+### ✅ Fase 6 — Reportes y dashboard (gerente) (completada y verificada)
+
+- Cuatro funciones puras nuevas en `domain/reporte/reporte.entity.ts` (archivo nuevo, no se agregaron a `reserva.entity.ts` para no mezclar el ciclo de vida de una reserva individual con reportes agregados — cohesión distinta): `reservasPorArea`, `reservasPorMes`, `tasaAprobacionRechazo` y `ocupacionPorArea`, más el auxiliar `contarOcurrenciasDeDiaSemanaEnMes` y `formatearMes`.
+- **Sin `groupBy`/`count()`/SQL de agregación** — no hay precedente de eso en el proyecto (todas las agregaciones existentes se hacen en memoria después de un fetch), así que Fase 6 sigue el mismo patrón: `generarDashboardGerente` (`application/reportes/generar-dashboard-gerente.ts`) trae las reservas y áreas completas del condominio y agrega todo en TypeScript puro.
+- **Decisión de diseño — no existe un método del puerto que devuelva áreas con `horariosDisponibles` embebidos:** se verificó el uso real en Fases 2/3 (`/huesped/areas-comunes/[id]/reservar/page.tsx`) y el puerto `AreaComunRepository` siempre trae horarios por área por separado (`horariosDisponibles(areaId)`), nunca embebidos en una sola llamada. `generarDashboardGerente` sigue ese mismo patrón: una llamada a `listarPorCondominio` para las áreas y luego `Promise.all` de `horariosDisponibles(areaId)` por cada área (N llamadas), en vez de agregar un método nuevo al puerto solo para esta fase.
+- Filtro único: `mes` (`YYYY-MM`, default el mes actual del servidor), replicando la convención de formulario GET nativo de `/gerente/reservas`. `reservasPorMes` (tendencia) ignora el filtro a propósito y siempre muestra los últimos 6 meses terminando en el mes actual real, como pide el roadmap.
+- Caso borde de la tasa de aprobación: cuando `aprobadas + rechazadas === 0` en el mes, `tasaAprobacionPorcentaje` es `null` (no `0`) — un `0%` sugeriría "toda reserva fue rechazada", que es engañoso cuando en realidad no hubo ninguna decisión tomada. La UI muestra un guion (`—`) en ese caso.
+- Cálculo de ocupación: `horasDisponibles` de un área = para cada `horarioDisponible` recurrente, su duración en horas × cuántas veces cae ese día de semana dentro del mes filtrado (`contarOcurrenciasDeDiaSemanaEnMes`, que itera los días del mes construyendo fechas con `Date.UTC(...)` a partir de componentes numéricos — nunca parseando un string de fecha con timezone ambigua, mismo criterio que `estaDentroDeHorarioDisponible` de Fase 3). `horasReservadas` solo cuenta reservas en estado `aprobada`. El porcentaje se capea a 100% (una reserva puede durar más que el "horario nominal" si hubo overlaps históricos) y da `0%` si el área no tiene horarios configurados (evita división por cero).
+- UI `/gerente/dashboard`: formulario GET con `<input type="month">`, 4 stat cards (total del mes, % aprobación, pendientes, rechazadas), gráfico de barras horizontales "reservas por área" (`bg-primary`), gráfico de barras verticales "reservas por mes" (`bg-secondary`), y barras de ocupación por área (`bg-success` sobre fondo `bg-muted`) — todo con `<div>` + Tailwind, sin agregar ninguna librería de gráficos (no hay precedente de eso en el proyecto). Estado vacío manejado (condominio sin reservas en el mes muestra un mensaje en vez de gráficos rotos o divisiones por cero).
+- Link "Dashboard" agregado a `GerenteNav`.
+- Verificado de punta a punta contra Postgres real: `pnpm db:seed` para partir de estado limpio, luego un script temporal insertó horarios y reservas conocidas (2 áreas con horarios, 5 reservas de agosto 2026 en distintos estados, más reservas de meses anteriores para la tendencia) y llamó a `generarDashboardGerente` directamente, comparando cada número devuelto contra el cálculo hecho a mano (21 aserciones, todas pasaron): agrupación y orden de `reservasPorArea`, los 6 meses de `reservasPorMes` con ceros donde no hay datos y cruzando el límite de año, `tasaAprobacionRechazo` (75% = 3 aprobadas / 4 decididas, ignorando pendientes/canceladas), `ocupacionPorArea` (20h y 20h disponibles por área con 1 horario semanal × 5 ocurrencias en agosto, y 0% para el área sin horarios). El script restauró la base a su estado de seed original (reservas y horarios de prueba eliminados) al terminar. `pnpm tsc --noEmit`, `pnpm lint` y `pnpm test` (22 tests, incluyendo 13 nuevos para `reporte.entity.ts`) sin errores.
+
 ---
 
 ## Roadmap de fases
 
 Cada fase es un incremento entregable. La arquitectura no cambia entre fases — solo crece el número de entidades, casos de uso y páginas.
 
-> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2, 3, 4 y 5 completadas. Ninguna fase 6–9 tiene código todavía. **Seguimos con la Fase 6 — Reportes y dashboard.**
+> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2, 3, 4, 5 y 6 completadas. Ninguna fase 7–9 tiene código todavía. **Seguimos con la Fase 7 — Multi-condominio real.**
 
 ### ✅ Fase 1 — Gestión de usuarios (completada)
 
@@ -272,10 +284,11 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 
 **Depende de:** Fase 4.
 
-### ⬜ Fase 6 — Reportes y dashboard
+### ✅ Fase 6 — Reportes y dashboard
 
-- Casos de uso de agregación (reservas por área/mes, tasa de aprobación/rechazo, ocupación).
-- UI: `/gerente/dashboard` con gráficos simples.
+- Cuatro funciones puras nuevas en `domain/reporte/reporte.entity.ts`: `reservasPorArea`, `reservasPorMes` (últimos 6 meses, ignora el filtro de mes seleccionado), `tasaAprobacionRechazo` y `ocupacionPorArea` (con su auxiliar `contarOcurrenciasDeDiaSemanaEnMes`), más `formatearMes` para derivar el "mes actual" del servidor.
+- Caso de uso `generarDashboardGerente` (`application/reportes/`) que trae reservas y áreas del condominio (una llamada cada uno) y agrega en memoria — sigue el mismo patrón que el resto del proyecto, sin `groupBy`/SQL de agregación.
+- UI: `/gerente/dashboard` — filtro de mes (`<input type="month">`), stat cards, gráfico de barras "reservas por área" (`bg-primary`), gráfico de barras "reservas por mes" (`bg-secondary`) y barras de ocupación por área (`bg-success` sobre `bg-muted`), todo con `<div>`+Tailwind (no se agregó ninguna librería de gráficos).
 
 **Depende de:** Fase 4 (necesita volumen de datos real).
 

@@ -8,6 +8,7 @@ const links = [
   { href: "/gerente", label: "Áreas comunes" },
   { href: "/gerente/usuarios", label: "Usuarios" },
   { href: "/gerente/reservas", label: "Reservas" },
+  { href: "/gerente/dashboard", label: "Dashboard" },
 ];
 
 export function GerenteNav() {
