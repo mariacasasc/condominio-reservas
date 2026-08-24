@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/gerente", label: "Áreas comunes" },
   { href: "/gerente/usuarios", label: "Usuarios" },
+  { href: "/gerente/reservas", label: "Reservas" },
 ];
 
 export function GerenteNav() {

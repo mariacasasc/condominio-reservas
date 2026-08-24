@@ -1,6 +1,7 @@
 import { eq, isNull } from "drizzle-orm";
 import { db } from "@/infrastructure/db/client";
 import { areasComunes, fechasBloqueadas, horariosDisponibles } from "@/infrastructure/db/schema";
+import { aHoraDominio } from "@/infrastructure/db/hora";
 import type {
   AreaComun,
   FechaBloqueada,
@@ -28,8 +29,8 @@ function horarioADominio(fila: typeof horariosDisponibles.$inferSelect): Horario
     id: fila.id,
     areaId: fila.areaId,
     diaSemana: fila.diaSemana,
-    horaInicio: fila.horaInicio,
-    horaFin: fila.horaFin,
+    horaInicio: aHoraDominio(fila.horaInicio),
+    horaFin: aHoraDominio(fila.horaFin),
   };
 }
 

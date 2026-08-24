@@ -186,13 +186,25 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 
 **Lo que todavía NO existe (por diseño, es de fases siguientes):** aprobación de reservas, cancelación de una reserva por el propio huésped, notificaciones (envío real de email), dashboard, multi-condominio activo, CI/CD.
 
+### ✅ Fase 4 — Aprobación de reservas (gerente) (completada y verificada)
+
+- Puerto `ReservaRepository` ampliado con `listarPorCondominio(condominioId, filtros?)` (filtros opcionales `areaId`/`fecha`/`estado`), implementado en `DrizzleReservaRepository` con un `innerJoin` contra `areas_comunes` — la tabla `reservas` no tiene `condominio_id` propio, así que el alcance por condominio se resuelve vía el área.
+- Caso de uso `listarReservasCondominio` (wrapper delgado, mismo estilo que `listarMisReservas`) en `application/reservas/`.
+- UI: `/gerente/reservas` — bandeja con formulario GET (sin JS) para filtrar por estado/área/fecha, filtrada a `pendiente` por defecto. Acciones "Aprobar"/"Rechazar" inline por fila (solo en reservas pendientes) conectadas a `aprobarReserva` (ya implementado en Fase 3) vía un único server action `decidirReservaAction` con un campo `decision` en el formulario, en vez de dos actions separadas.
+- UI: `/gerente/reservas/[id]` — vista de detalle con el historial de revisión (`revisadoPor` resuelto a nombre, `revisadoEn`), reutilizando las mismas acciones de aprobar/rechazar si la reserva sigue pendiente. Sigue el patrón de rutas `[id]` de `areas-comunes` en vez de modales.
+- Componentes nuevos: `EstadoReservaBadge` (`components/reservas/`) — extrae la paleta de badges de estado que ya existía inline en `/huesped/mis-reservas` a un componente compartido, reusado en ambas páginas nuevas; `DecidirReservaForm` (`components/forms/`) — client component con `useActionState` para mostrar el mensaje de error amigable si `ReservaNoEncontradaError`/`TransicionInvalidaError` ocurre (por ejemplo, doble clic aprobando dos veces).
+- `decidirReservaAction` revalida `/gerente/reservas`, `/gerente/reservas/[id]` y `/huesped/mis-reservas` para que el huésped vea el cambio de estado sin recargar manualmente.
+- Link "Reservas" agregado a `GerenteNav`.
+- **Bug pre-existente descubierto (no corregido, fuera de alcance de esta fase):** `estaDentroDeHorarioDisponible` en `domain/area-comun/area-comun.entity.ts` (Fase 3) compara horas con `>=`/`<=` sobre strings. Postgres devuelve `horaInicio`/`horaFin` de `horarios_disponibles` con segundos (`"09:00:00"`), mientras que una reserva llega como `"09:00"` (sin segundos, formato de `<input type="time">`). Cuando una reserva empieza exactamente en el mismo minuto que la apertura del horario, la comparación de strings falla (`"09:00" >= "09:00:00"` es `false` porque un prefijo propio siempre compara como "menor"), rechazando una reserva que debería ser válida. Solo afecta el caso borde de "reservar justo a la hora de apertura"; se recomienda corregirlo en una fase futura comparando por minutos parseados en vez de por string.
+- Verificado de punta a punta contra Postgres real, pero mediante un script que ejercita los mismos casos de uso que la UI (`crearReserva` → `listarReservasCondominio` → `aprobarReserva` → `listarMisReservas`) en vez de un click-through de navegador, dado que este entorno no tiene automatización de browser disponible: reserva creada por el huésped aparece en la bandeja `pendiente` del gerente, el filtro por área funciona, `aprobarReserva` deja la reserva en `aprobada` con `revisadoPor`/`revisadoEn` completos, el huésped ve el nuevo estado en `listarMisReservas`, y un segundo intento de decisión sobre la misma reserva lanza `TransicionInvalidaError` como se espera. `pnpm tsc --noEmit`, `pnpm lint` y `pnpm test` (suite existente) sin errores. Base de datos restaurada a su estado de seed original después de la verificación.
+
 ---
 
 ## Roadmap de fases
 
 Cada fase es un incremento entregable. La arquitectura no cambia entre fases — solo crece el número de entidades, casos de uso y páginas.
 
-> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2 y 3 completadas. Ninguna fase 4–9 tiene código todavía (no hay server action para `aprobar-reserva`, aunque ese caso de uso ya está escrito en `application/`). **Seguimos con la Fase 4 — Aprobación de reservas (gerente).**
+> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2, 3 y 4 completadas. Ninguna fase 5–9 tiene código todavía. **Seguimos con la Fase 5 — Notificaciones.**
 
 ### ✅ Fase 1 — Gestión de usuarios (completada)
 
@@ -231,7 +243,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 2 (sin horarios/bloqueos configurables no se puede calcular disponibilidad real).
 **Definición de terminado:** un huésped puede ver franjas disponibles reales y crear una reserva que queda en estado `pendiente`.
 
-### ⬜ Fase 4 — Aprobación de reservas (gerente) (siguiente)
+### ✅ Fase 4 — Aprobación de reservas (gerente) (completada)
 
 **Objetivo:** cerrar el ciclo de vida de la reserva.
 

@@ -1,8 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/infrastructure/db/client";
-import { reservas } from "@/infrastructure/db/schema";
+import { areasComunes, reservas } from "@/infrastructure/db/schema";
+import { aHoraDominio } from "@/infrastructure/db/hora";
 import type { Reserva } from "@/domain/reserva/reserva.entity";
-import type { ReservaRepository } from "@/domain/reserva/reserva.repository";
+import type { FiltrosReservasCondominio, ReservaRepository } from "@/domain/reserva/reserva.repository";
 
 function aDominio(fila: typeof reservas.$inferSelect): Reserva {
   return {
@@ -10,8 +11,8 @@ function aDominio(fila: typeof reservas.$inferSelect): Reserva {
     areaId: fila.areaId,
     usuarioId: fila.usuarioId,
     fecha: fila.fecha,
-    horaInicio: fila.horaInicio,
-    horaFin: fila.horaFin,
+    horaInicio: aHoraDominio(fila.horaInicio),
+    horaFin: aHoraDominio(fila.horaFin),
     cantidadPersonas: fila.cantidadPersonas,
     estado: fila.estado,
     notas: fila.notas,
@@ -62,6 +63,23 @@ export class DrizzleReservaRepository implements ReservaRepository {
       .from(reservas)
       .where(and(eq(reservas.areaId, areaId), eq(reservas.fecha, fecha)));
     return filas.map(aDominio);
+  }
+
+  async listarPorCondominio(
+    condominioId: string,
+    filtros?: FiltrosReservasCondominio,
+  ): Promise<Reserva[]> {
+    const condiciones = [eq(areasComunes.condominioId, condominioId)];
+    if (filtros?.areaId) condiciones.push(eq(reservas.areaId, filtros.areaId));
+    if (filtros?.fecha) condiciones.push(eq(reservas.fecha, filtros.fecha));
+    if (filtros?.estado) condiciones.push(eq(reservas.estado, filtros.estado));
+
+    const filas = await db
+      .select({ reserva: reservas })
+      .from(reservas)
+      .innerJoin(areasComunes, eq(reservas.areaId, areasComunes.id))
+      .where(and(...condiciones));
+    return filas.map((fila) => aDominio(fila.reserva));
   }
 
   async actualizarEstado(
