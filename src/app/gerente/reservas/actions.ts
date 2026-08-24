@@ -8,6 +8,9 @@ import {
   TransicionInvalidaError,
 } from "@/application/reservas/aprobar-reserva";
 import { DrizzleReservaRepository } from "@/infrastructure/db/repositories/reserva.repository.drizzle";
+import { DrizzleUsuarioRepository } from "@/infrastructure/db/repositories/usuario.repository.drizzle";
+import { DrizzleAreaComunRepository } from "@/infrastructure/db/repositories/area-comun.repository.drizzle";
+import { ResendNotificador } from "@/infrastructure/notificaciones/resend-notificador";
 
 export interface DecidirReservaFormState {
   error?: string;
@@ -36,7 +39,12 @@ export async function decidirReservaAction(
   try {
     await aprobarReserva(
       { reservaId, revisadoPor: session.user.id, decision },
-      { reservaRepository: new DrizzleReservaRepository() },
+      {
+        reservaRepository: new DrizzleReservaRepository(),
+        usuarioRepository: new DrizzleUsuarioRepository(),
+        areaComunRepository: new DrizzleAreaComunRepository(),
+        notificadorPort: new ResendNotificador(),
+      },
     );
   } catch (error) {
     if (error instanceof ReservaNoEncontradaError) {

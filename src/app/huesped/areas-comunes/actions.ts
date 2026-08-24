@@ -7,6 +7,8 @@ import { crearReservaSchema } from "@/shared/schemas/reserva.schema";
 import { crearReserva, ReservaInvalidaError } from "@/application/reservas/crear-reserva";
 import { DrizzleAreaComunRepository } from "@/infrastructure/db/repositories/area-comun.repository.drizzle";
 import { DrizzleReservaRepository } from "@/infrastructure/db/repositories/reserva.repository.drizzle";
+import { DrizzleUsuarioRepository } from "@/infrastructure/db/repositories/usuario.repository.drizzle";
+import { ResendNotificador } from "@/infrastructure/notificaciones/resend-notificador";
 
 export interface ReservaFormState {
   error?: string;
@@ -49,6 +51,8 @@ export async function crearReservaAction(
       {
         areaComunRepository: new DrizzleAreaComunRepository(),
         reservaRepository: new DrizzleReservaRepository(),
+        usuarioRepository: new DrizzleUsuarioRepository(),
+        notificadorPort: new ResendNotificador(),
       },
     );
   } catch (error) {

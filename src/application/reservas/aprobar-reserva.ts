@@ -1,9 +1,16 @@
 import type { ReservaRepository } from "@/domain/reserva/reserva.repository";
+import type { UsuarioRepository } from "@/domain/usuario/usuario.repository";
+import type { AreaComunRepository } from "@/domain/area-comun/area-comun.repository";
+import type { NotificadorPort } from "@/domain/notificacion/notificador.port";
 import type { EstadoReserva, Reserva } from "@/domain/reserva/reserva.entity";
 import { puedeTransicionar } from "@/domain/reserva/reserva.entity";
+import { notificarReservaDecidida } from "@/application/notificaciones/notificar-reserva-decidida";
 
 export interface AprobarReservaDeps {
   reservaRepository: ReservaRepository;
+  usuarioRepository: UsuarioRepository;
+  areaComunRepository: AreaComunRepository;
+  notificadorPort: NotificadorPort;
   ahora?: () => Date;
 }
 
@@ -36,9 +43,18 @@ export async function aprobarReserva(
   }
 
   const ahora = (deps.ahora ?? (() => new Date()))();
-  return deps.reservaRepository.actualizarEstado(comando.reservaId, {
+  const reservaActualizada = await deps.reservaRepository.actualizarEstado(comando.reservaId, {
     estado: comando.decision,
     revisadoPor: comando.revisadoPor,
     revisadoEn: ahora,
   });
+
+  // Best-effort y awaited: un email fallido no debe invalidar una decisión ya persistida.
+  try {
+    await notificarReservaDecidida(reservaActualizada, deps);
+  } catch (error) {
+    console.error("No se pudo notificar la decisión de la reserva:", error);
+  }
+
+  return reservaActualizada;
 }

@@ -198,13 +198,23 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 - **Bug pre-existente descubierto (no corregido, fuera de alcance de esta fase):** `estaDentroDeHorarioDisponible` en `domain/area-comun/area-comun.entity.ts` (Fase 3) compara horas con `>=`/`<=` sobre strings. Postgres devuelve `horaInicio`/`horaFin` de `horarios_disponibles` con segundos (`"09:00:00"`), mientras que una reserva llega como `"09:00"` (sin segundos, formato de `<input type="time">`). Cuando una reserva empieza exactamente en el mismo minuto que la apertura del horario, la comparación de strings falla (`"09:00" >= "09:00:00"` es `false` porque un prefijo propio siempre compara como "menor"), rechazando una reserva que debería ser válida. Solo afecta el caso borde de "reservar justo a la hora de apertura"; se recomienda corregirlo en una fase futura comparando por minutos parseados en vez de por string.
 - Verificado de punta a punta contra Postgres real, pero mediante un script que ejercita los mismos casos de uso que la UI (`crearReserva` → `listarReservasCondominio` → `aprobarReserva` → `listarMisReservas`) en vez de un click-through de navegador, dado que este entorno no tiene automatización de browser disponible: reserva creada por el huésped aparece en la bandeja `pendiente` del gerente, el filtro por área funciona, `aprobarReserva` deja la reserva en `aprobada` con `revisadoPor`/`revisadoEn` completos, el huésped ve el nuevo estado en `listarMisReservas`, y un segundo intento de decisión sobre la misma reserva lanza `TransicionInvalidaError` como se espera. `pnpm tsc --noEmit`, `pnpm lint` y `pnpm test` (suite existente) sin errores. Base de datos restaurada a su estado de seed original después de la verificación.
 
+### ✅ Fase 5 — Notificaciones (completada y verificada)
+
+- Puerto `NotificadorPort` (`domain/notificacion/notificador.port.ts`) con un único método `enviarEmail(notificacion)`, desacoplado de cualquier proveedor concreto.
+- Implementación `ResendNotificador` (`infrastructure/notificaciones/`) usando el SDK de [Resend](https://resend.com). Remitente configurable por `RESEND_FROM_EMAIL` (default `onboarding@resend.dev`, el remitente de prueba de Resend — no requiere dominio verificado pero **solo entrega al email de la cuenta de Resend** hasta que se verifique un dominio propio).
+- Composición de contenido en `application/notificaciones/`: `plantillas-email.ts` (HTML con la paleta de marca) y dos casos de uso delgados, `notificarReservaCreada` (avisa a los gerentes activos del condominio) y `notificarReservaDecidida` (avisa al huésped cuando su reserva pasa a `aprobada`/`rechazada`).
+- `crearReserva` y `aprobarReserva` ahora reciben `usuarioRepository` y `notificadorPort` como dependencias adicionales y llaman a la notificación correspondiente después de persistir el cambio — **awaited pero best-effort**: un email fallido se loguea con `console.error` y nunca revierte ni invalida una reserva/decisión ya guardada (importante en despliegues serverless, donde una promesa sin awaitear puede cortarse al terminar la función).
+- Notificaciones in-app (tabla `notificaciones`) quedaron fuera de esta fase — eran opcionales en el roadmap y el email cubre el caso de uso principal.
+- Verificado de punta a punta contra Postgres real con un `NotificadorPort` de prueba (sin key de Resend configurada en este entorno): `crearReserva` dispara exactamente un email al gerente del condominio, `aprobarReserva` dispara exactamente un email al huésped dueño de la reserva, y ambos casos de uso devuelven la entidad esperada incluso si se simula que el envío falla. `pnpm tsc --noEmit`, `pnpm lint` y `pnpm test` sin errores. Base de datos restaurada a su estado de seed original después de la verificación.
+- **Pendiente para quien retome el proyecto:** configurar `RESEND_API_KEY` (y opcionalmente `RESEND_FROM_EMAIL` con un dominio propio verificado) en `.env` para que el envío real funcione — sin esa key, `ResendNotificador` fallará al enviar (el error queda logueado, no rompe el flujo de reservas).
+
 ---
 
 ## Roadmap de fases
 
 Cada fase es un incremento entregable. La arquitectura no cambia entre fases — solo crece el número de entidades, casos de uso y páginas.
 
-> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2, 3 y 4 completadas. Ninguna fase 5–9 tiene código todavía. **Seguimos con la Fase 5 — Notificaciones.**
+> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2, 3, 4 y 5 completadas. Ninguna fase 6–9 tiene código todavía. **Seguimos con la Fase 6 — Reportes y dashboard.**
 
 ### ✅ Fase 1 — Gestión de usuarios (completada)
 
@@ -254,11 +264,11 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 **Depende de:** Fase 3.
 **Definición de terminado:** un gerente puede aprobar o rechazar una reserva pendiente y el huésped ve el cambio de estado reflejado.
 
-### ⬜ Fase 5 — Notificaciones
+### ✅ Fase 5 — Notificaciones (completada)
 
-- Puerto `NotificadorPort` en `domain`/`application`, implementación por email (Resend o Nodemailer) en `infrastructure/notificaciones`.
+- Puerto `NotificadorPort` en `domain`/`application`, implementación por email (Resend) en `infrastructure/notificaciones`.
 - Eventos: reserva creada (avisa al gerente), reserva aprobada/rechazada (avisa al huésped).
-- Opcional: notificaciones in-app (tabla `notificaciones` nueva).
+- Notificaciones in-app: descartadas por ahora (eran opcionales en el roadmap).
 
 **Depende de:** Fase 4.
 

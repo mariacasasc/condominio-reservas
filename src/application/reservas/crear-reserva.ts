@@ -1,5 +1,7 @@
 import type { AreaComunRepository } from "@/domain/area-comun/area-comun.repository";
 import type { ReservaRepository } from "@/domain/reserva/reserva.repository";
+import type { UsuarioRepository } from "@/domain/usuario/usuario.repository";
+import type { NotificadorPort } from "@/domain/notificacion/notificador.port";
 import type { Reserva } from "@/domain/reserva/reserva.entity";
 import {
   cabeEnCapacidad,
@@ -13,10 +15,13 @@ import {
   seSuperponen,
   tieneHorarioValido,
 } from "@/domain/reserva/reserva.entity";
+import { notificarReservaCreada } from "@/application/notificaciones/notificar-reserva-creada";
 
 export interface CrearReservaDeps {
   areaComunRepository: AreaComunRepository;
   reservaRepository: ReservaRepository;
+  usuarioRepository: UsuarioRepository;
+  notificadorPort: NotificadorPort;
   ahora?: () => Date;
 }
 
@@ -101,7 +106,7 @@ export async function crearReserva(
     throw new ReservaInvalidaError("Ya existe una reserva en ese horario");
   }
 
-  return deps.reservaRepository.crear({
+  const reserva = await deps.reservaRepository.crear({
     areaId: comando.areaId,
     usuarioId: comando.usuarioId,
     fecha: comando.fecha,
@@ -111,4 +116,15 @@ export async function crearReserva(
     estado: "pendiente",
     notas: comando.notas ?? null,
   });
+
+  // Best-effort y awaited (no fire-and-forget): en despliegues serverless una
+  // promesa sin awaitear puede cortarse apenas la función retorna. Se atrapa
+  // el error para que un email fallido no invalide una reserva ya persistida.
+  try {
+    await notificarReservaCreada(reserva, area, deps);
+  } catch (error) {
+    console.error("No se pudo notificar la reserva creada:", error);
+  }
+
+  return reserva;
 }
