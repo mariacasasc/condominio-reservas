@@ -47,12 +47,12 @@ Chain strategy: pending
 
 ## Phase 4: Isolation Tests + Seed (PR 2, depends on Phase 3)
 
-- [ ] 4.1 `src/infrastructure/db/seed.ts`: add condominio B ("Vista Mar") — 1 gerente, 1 huésped, 1 área activa, ≥1 horario, 1 reserva `pendiente`, 1 condominio-wide `fechaBloqueada`; add horarios + 1 condominio-wide `fechaBloqueada` to condominio A. *(Req: Multi-Condominio Development Seed)*
-- [ ] 4.2 `src/application/reservas/crear-reserva.test.ts`: colocated in-memory fakes (only `buscarPorId` implemented, rest `noUsado`); test asserts identical error class+message for foreign-condominio area vs. nonexistent area. *(Req: Isolation Regression Test Coverage, scenario: huesped attempts cross-tenant reserva)*
-- [ ] 4.3 `src/application/areas-comunes/eliminar-fecha-bloqueada.test.ts`: fake covering both area-scoped and condominio-wide cross-tenant deletion attempts. *(Req: Isolation Regression Test Coverage, scenario: gerente attempts cross-tenant deletion)*
-- [ ] 4.4 `src/application/areas-comunes/agregar-fecha-bloqueada.test.ts`: fake covering cross-tenant area-block attempt. *(Req: Isolation Regression Test Coverage, scenario: gerente attempts to block a foreign area's date)*
+- [x] 4.1 `src/infrastructure/db/seed.ts`: add condominio B ("Vista Mar") — 1 gerente, 1 huésped, 1 área activa, ≥1 horario, 1 reserva `pendiente`, 1 condominio-wide `fechaBloqueada`; add horarios + 1 condominio-wide `fechaBloqueada` to condominio A. *(Req: Multi-Condominio Development Seed)*
+- [x] 4.2 `src/application/reservas/crear-reserva.test.ts`: colocated in-memory fakes (only `buscarPorId` implemented, rest `noUsado`); test asserts identical error class+message for foreign-condominio area vs. nonexistent area. *(Req: Isolation Regression Test Coverage, scenario: huesped attempts cross-tenant reserva)*
+- [x] 4.3 `src/application/areas-comunes/eliminar-fecha-bloqueada.test.ts`: fake covering both area-scoped and condominio-wide cross-tenant deletion attempts. *(Req: Isolation Regression Test Coverage, scenario: gerente attempts cross-tenant deletion)*
+- [x] 4.4 `src/application/areas-comunes/agregar-fecha-bloqueada.test.ts`: fake covering cross-tenant area-block attempt. *(Req: Isolation Regression Test Coverage, scenario: gerente attempts to block a foreign area's date)*
 
 ## Phase 5: Final Verification (depends on Phase 4)
 
-- [ ] 5.1 Run `pnpm tsc --noEmit`, `pnpm lint`, `pnpm test` — full suite green; new isolation tests fail if a check is manually removed (spot-check one).
-- [ ] 5.2 Manual E2E with 2-condominio seed: gerente/huesped of condominio A against condominio B ids on all 3 fixed paths receive the NotFound-style error; restore seed state after.
+- [x] 5.1 Run `pnpm tsc --noEmit`, `pnpm lint`, `pnpm test` — full suite green; new isolation tests fail if a check is manually removed (spot-check one).
+- [x] 5.2 Manual E2E with 2-condominio seed: gerente/huesped of condominio A against condominio B ids on all 3 fixed paths receive the NotFound-style error; restore seed state after.
