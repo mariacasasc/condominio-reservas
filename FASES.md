@@ -284,7 +284,7 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 
 **Depende de:** Fase 4.
 
-### ✅ Fase 6 — Reportes y dashboard
+### ✅ Fase 6 — Reportes y dashboard (completada)
 
 - Cuatro funciones puras nuevas en `domain/reporte/reporte.entity.ts`: `reservasPorArea`, `reservasPorMes` (últimos 6 meses, ignora el filtro de mes seleccionado), `tasaAprobacionRechazo` y `ocupacionPorArea` (con su auxiliar `contarOcurrenciasDeDiaSemanaEnMes`), más `formatearMes` para derivar el "mes actual" del servidor.
 - Caso de uso `generarDashboardGerente` (`application/reportes/`) que trae reservas y áreas del condominio (una llamada cada uno) y agrega en memoria — sigue el mismo patrón que el resto del proyecto, sin `groupBy`/SQL de agregación.
