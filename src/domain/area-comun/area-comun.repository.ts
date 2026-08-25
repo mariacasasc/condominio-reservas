@@ -14,8 +14,8 @@ export interface AreaComunRepository {
 
   /** Bloqueos puntuales de un área específica (`areaId` no nulo). */
   fechasBloqueadas(areaId: string): Promise<FechaBloqueada[]>;
-  /** Bloqueos que aplican a todo el condominio (`areaId` nulo). */
-  fechasBloqueadasGenerales(): Promise<FechaBloqueada[]>;
+  /** Bloqueos que aplican a todo el condominio (`areaId` nulo), scoped por condominio. */
+  fechasBloqueadasGenerales(condominioId: string): Promise<FechaBloqueada[]>;
   buscarFechaBloqueadaPorId(id: string): Promise<FechaBloqueada | null>;
   crearFechaBloqueada(fecha: Omit<FechaBloqueada, "id">): Promise<FechaBloqueada>;
   eliminarFechaBloqueada(id: string): Promise<void>;

@@ -36,7 +36,7 @@ export default async function EditarAreaComunPage({ params }: PageProps) {
   const [horarios, fechasArea, fechasGenerales] = await Promise.all([
     repositorio.horariosDisponibles(id),
     repositorio.fechasBloqueadas(id),
-    repositorio.fechasBloqueadasGenerales(),
+    repositorio.fechasBloqueadasGenerales(condominioId),
   ]);
 
   const bloqueos = [...fechasArea, ...fechasGenerales].sort((a, b) => a.fecha.localeCompare(b.fecha));

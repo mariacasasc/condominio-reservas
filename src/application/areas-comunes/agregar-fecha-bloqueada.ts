@@ -29,6 +29,7 @@ export async function agregarFechaBloqueada(
   }
 
   return deps.areaComunRepository.crearFechaBloqueada({
+    condominioId: comando.condominioId,
     areaId: comando.areaId,
     fecha: comando.fecha,
     motivo: comando.motivo,

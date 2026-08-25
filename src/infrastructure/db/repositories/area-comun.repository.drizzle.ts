@@ -1,4 +1,4 @@
-import { eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/infrastructure/db/client";
 import { areasComunes, fechasBloqueadas, horariosDisponibles } from "@/infrastructure/db/schema";
 import { aHoraDominio } from "@/infrastructure/db/hora";
@@ -37,6 +37,7 @@ function horarioADominio(fila: typeof horariosDisponibles.$inferSelect): Horario
 function fechaBloqueadaADominio(fila: typeof fechasBloqueadas.$inferSelect): FechaBloqueada {
   return {
     id: fila.id,
+    condominioId: fila.condominioId,
     areaId: fila.areaId,
     fecha: fila.fecha,
     motivo: fila.motivo,
@@ -146,11 +147,11 @@ export class DrizzleAreaComunRepository implements AreaComunRepository {
     return filas.map(fechaBloqueadaADominio);
   }
 
-  async fechasBloqueadasGenerales(): Promise<FechaBloqueada[]> {
+  async fechasBloqueadasGenerales(condominioId: string): Promise<FechaBloqueada[]> {
     const filas = await db
       .select()
       .from(fechasBloqueadas)
-      .where(isNull(fechasBloqueadas.areaId));
+      .where(and(eq(fechasBloqueadas.condominioId, condominioId), isNull(fechasBloqueadas.areaId)));
     return filas.map(fechaBloqueadaADominio);
   }
 
@@ -167,6 +168,7 @@ export class DrizzleAreaComunRepository implements AreaComunRepository {
     const [fila] = await db
       .insert(fechasBloqueadas)
       .values({
+        condominioId: fecha.condominioId,
         areaId: fecha.areaId,
         fecha: fecha.fecha,
         motivo: fecha.motivo,
