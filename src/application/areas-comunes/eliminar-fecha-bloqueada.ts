@@ -11,9 +11,8 @@ export interface EliminarFechaBloqueadaComando {
 }
 
 /**
- * Use case: a gerente removes a blocked date. A condominio-wide block
- * (areaId null) has no condominioId column to check against yet — the
- * schema models a single condominio today, real isolation lands in Fase 7.
+ * Use case: a gerente removes a blocked date. `condominioId` on the row
+ * itself is authoritative for both area-scoped and condominio-wide blocks.
  */
 export async function eliminarFechaBloqueada(
   comando: EliminarFechaBloqueadaComando,
@@ -22,15 +21,8 @@ export async function eliminarFechaBloqueada(
   const fechaBloqueada = await deps.areaComunRepository.buscarFechaBloqueadaPorId(
     comando.fechaBloqueadaId,
   );
-  if (!fechaBloqueada) {
+  if (!fechaBloqueada || fechaBloqueada.condominioId !== comando.condominioId) {
     throw new AreaComunNoEncontradaError("La fecha bloqueada no existe");
-  }
-
-  if (fechaBloqueada.areaId) {
-    const area = await deps.areaComunRepository.buscarPorId(fechaBloqueada.areaId);
-    if (!area || area.condominioId !== comando.condominioId) {
-      throw new AreaComunNoEncontradaError("La fecha bloqueada no existe");
-    }
   }
 
   await deps.areaComunRepository.eliminarFechaBloqueada(comando.fechaBloqueadaId);

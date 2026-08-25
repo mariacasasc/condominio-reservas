@@ -25,6 +25,7 @@ export interface HorarioDisponible {
 
 export interface FechaBloqueada {
   id: string;
+  condominioId: string;
   areaId: string | null; // null = applies condominium-wide
   fecha: string; // "YYYY-MM-DD"
   motivo: string | null;

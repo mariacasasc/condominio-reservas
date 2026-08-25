@@ -28,6 +28,7 @@ export interface CrearReservaDeps {
 export interface CrearReservaComando {
   areaId: string;
   usuarioId: string;
+  condominioId: string;
   fecha: string;
   horaInicio: string;
   horaFin: string;
@@ -47,7 +48,7 @@ export async function crearReserva(
   deps: CrearReservaDeps,
 ): Promise<Reserva> {
   const area = await deps.areaComunRepository.buscarPorId(comando.areaId);
-  if (!area) {
+  if (!area || area.condominioId !== comando.condominioId) {
     throw new ReservaInvalidaError("El área común no existe");
   }
   if (!puedeReservarse(area)) {
@@ -74,7 +75,7 @@ export async function crearReserva(
 
   const [fechasDelArea, fechasGenerales] = await Promise.all([
     deps.areaComunRepository.fechasBloqueadas(comando.areaId),
-    deps.areaComunRepository.fechasBloqueadasGenerales(),
+    deps.areaComunRepository.fechasBloqueadasGenerales(comando.condominioId),
   ]);
   if (estaFechaBloqueada(fechasDelArea, fechasGenerales, comando.fecha)) {
     throw new ReservaInvalidaError("La fecha solicitada está bloqueada para este área");

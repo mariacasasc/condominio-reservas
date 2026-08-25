@@ -86,6 +86,9 @@ export const horariosDisponibles = pgTable("horarios_disponibles", {
 /** Holidays and one-off blocks. Null areaId = applies to the whole condominio. */
 export const fechasBloqueadas = pgTable("fechas_bloqueadas", {
   id: uuid("id").primaryKey().defaultRandom(),
+  condominioId: uuid("condominio_id")
+    .notNull()
+    .references(() => condominios.id, { onDelete: "cascade" }),
   areaId: uuid("area_id").references(() => areasComunes.id, { onDelete: "cascade" }),
   fecha: date("fecha").notNull(),
   motivo: text("motivo"),

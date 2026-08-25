@@ -42,6 +42,7 @@ export async function crearReservaAction(
       {
         areaId: parsed.data.areaId,
         usuarioId: session.user.id,
+        condominioId: session.user.condominioId,
         fecha: parsed.data.fecha,
         horaInicio: parsed.data.horaInicio,
         horaFin: parsed.data.horaFin,
