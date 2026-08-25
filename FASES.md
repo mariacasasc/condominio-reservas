@@ -186,6 +186,18 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 
 **Lo que todavía NO existe (por diseño, es de fases siguientes):** aprobación de reservas, cancelación de una reserva por el propio huésped, notificaciones (envío real de email), dashboard, multi-condominio activo, CI/CD.
 
+### ✅ Fase 7 — Aislamiento por condominio (completada y verificada)
+
+- Alcance acotado por decisión explícita antes de escribir código: **sin** selector de condominio en sesión (sigue siendo un condominio fijo por usuario, como hoy), **sin** rol `super-admin` (los condominios se siguen creando manualmente), **sin** cambio a la unicidad global de `usuarios.email`. El roadmap original planteaba las tres cosas; se descartaron para enfocar la fase en cerrar huecos reales de aislamiento en vez de construir infraestructura de sesión que nadie necesita todavía.
+- `fechas_bloqueadas` gana columna `condominio_id` propia — un bloqueo "todo el condominio" (`areaId` nulo) no tenía antes forma de derivar a qué condominio pertenecía. Migración `nullable → backfill → NOT NULL` (hecha a mano sobre el SQL generado por `drizzle-kit`, porque solo existía un condominio al momento de migrar).
+- `fechasBloqueadasGenerales()` pasa a recibir `condominioId`: antes no tenía parámetro y filtraba bloqueos de **todos** los condominios en el cálculo de disponibilidad de cualquier área — el hueco real era peor que el documentado en la Fase 2 (no era solo el borrado, afectaba a toda reserva nueva).
+- Auditoría completa de los casos de uso en `application/` contra el patrón fetch-then-compare (`entity.condominioId !== comando.condominioId`, mismo error que "no existe" para nunca filtrar la existencia de un recurso ajeno — patrón original de `desactivar-usuario.ts`, Fase 1). Se encontró y corrigió, aparte del flujo SDD de esta fase, un **bug de seguridad ya explotable**: `aprobar-reserva.ts` no validaba pertenencia al condominio en la mutación, solo la UI lo hacía. Se cerraron los mismos huecos categóricos en `crear-reserva`/`huesped/areas-comunes/actions.ts` (el punto real de la fuga era el server action, que nunca leía `condominioId`), `eliminar-fecha-bloqueada` y `agregar-fecha-bloqueada`.
+- `reservas` **no** gana `condominio_id` propio: su `areaId` es `NOT NULL`, el condominio siempre es derivable vía el join a `areas_comunes` (mismo camino que ya usaba `listarPorCondominio` desde la Fase 4) — se evaluó agregar la columna igual que a `fechas_bloqueadas` y se descartó por ser un dato redundante, sin ganancia real, con riesgo de desincronizarse.
+- Primeros tests unitarios del proyecto en `application/` (Vitest, fakes mínimos por archivo, no un toolkit compartido): prueban específicamente el caso negativo cross-tenant, porque la verificación manual contra Postgres real que usa el proyecto en el resto de las fases (happy path de un solo condominio) es estructuralmente incapaz de detectar una fuga entre tenants.
+- Seed permanente con dos condominios ("Los Robles" y "Vista Mar") — sin un segundo condominio en los datos de prueba, este tipo de bug de aislamiento queda invisible en el uso normal. De paso se agregaron horarios disponibles a las áreas de ambos condominios (el seed no tenía ninguno desde la Fase 0, así que reservar de verdad vía UI requería que el gerente los cargara a mano primero).
+- Desarrollada con el flujo SDD completo (exploración → propuesta → spec → diseño → tasks → apply → verify → archive), documentado en `openspec/` (`sdd-archive` movió el cambio a su ubicación final tras el merge). Entregada en 2 PRs encadenados por presupuesto de revisión (~150 y ~250 líneas cada uno).
+- Verificado: `pnpm tsc --noEmit`, `pnpm lint` y `pnpm test` (29 tests, 7 nuevos) sin errores; `pnpm db:seed` corrido dos veces contra Postgres real confirmando idempotencia; verificación manual del rechazo cross-tenant contra Postgres real. `sdd-verify` independiente (lectura directa del código, no solo el reporte de implementación): PASS, 0 issues, en ambos PRs.
+
 ### ✅ Fase 4 — Aprobación de reservas (gerente) (completada y verificada)
 
 - Puerto `ReservaRepository` ampliado con `listarPorCondominio(condominioId, filtros?)` (filtros opcionales `areaId`/`fecha`/`estado`), implementado en `DrizzleReservaRepository` con un `innerJoin` contra `areas_comunes` — la tabla `reservas` no tiene `condominio_id` propio, así que el alcance por condominio se resuelve vía el área.
@@ -226,7 +238,7 @@ pnpm db:generate     # genera una nueva migración a partir de cambios en schema
 
 Cada fase es un incremento entregable. La arquitectura no cambia entre fases — solo crece el número de entidades, casos de uso y páginas.
 
-> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2, 3, 4, 5 y 6 completadas. Ninguna fase 7–9 tiene código todavía. **Seguimos con la Fase 7 — Multi-condominio real.**
+> **Estado (verificado contra el código en `src/`, no solo contra este documento):** Fases 0, 1, 2, 3, 4, 5, 6 y 7 completadas. Ninguna fase 8–9 tiene código todavía. **Seguimos con la Fase 8 — Calidad, CI/CD y despliegue.**
 
 ### ✅ Fase 1 — Gestión de usuarios (completada)
 
@@ -292,11 +304,11 @@ Cada fase es un incremento entregable. La arquitectura no cambia entre fases —
 
 **Depende de:** Fase 4 (necesita volumen de datos real).
 
-### ⬜ Fase 7 — Multi-condominio real
+### ✅ Fase 7 — Aislamiento por condominio (completada)
 
-- Selector de condominio en sesión (hoy `condominioId` viaja en el JWT pero solo hay uno).
-- Rol adicional posible: `super-admin` que administra condominios y gerentes.
-- Auditoría de aislamiento de datos por `condominio_id` en cada query.
+- Auditoría de aislamiento de datos por `condominio_id` en cada query de `application/` — el ítem que realmente se hizo del roadmap original.
+- `fechas_bloqueadas` gana `condominio_id` propio; `reservas` se evaluó y se descartó (su condominio ya es derivable vía `areaId`, siempre `NOT NULL`).
+- **Descartado por decisión explícita, no por falta de tiempo:** selector de condominio en sesión y rol `super-admin`. Ninguno de los dos tiene un caso de uso real hoy (un usuario sigue perteneciendo a exactamente un condominio; los condominios se siguen creando a mano). Si en el futuro aparece la necesidad real (por ejemplo, una administradora que gestiona varios edificios), son su propia fase — agregarlos ahora hubiera sido construir infraestructura de sesión especulativa.
 
 **Depende de:** Fases 1–4 estables (cambio transversal, mejor con el dominio maduro).
 
