@@ -38,7 +38,12 @@ export async function decidirReservaAction(
 
   try {
     await aprobarReserva(
-      { reservaId, revisadoPor: session.user.id, decision },
+      {
+        reservaId,
+        revisadoPor: session.user.id,
+        decision,
+        condominioId: session.user.condominioId,
+      },
       {
         reservaRepository: new DrizzleReservaRepository(),
         usuarioRepository: new DrizzleUsuarioRepository(),

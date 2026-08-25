@@ -18,6 +18,7 @@ export interface AprobarReservaComando {
   reservaId: string;
   revisadoPor: string; // usuario id of the gerente making the decision
   decision: Extract<EstadoReserva, "aprobada" | "rechazada">;
+  condominioId: string;
 }
 
 export class ReservaNoEncontradaError extends Error {}
@@ -34,6 +35,13 @@ export async function aprobarReserva(
 ): Promise<Reserva> {
   const reserva = await deps.reservaRepository.buscarPorId(comando.reservaId);
   if (!reserva) {
+    throw new ReservaNoEncontradaError("La reserva no existe");
+  }
+
+  // reservas no tiene condominio_id propio — el alcance se resuelve vía el
+  // área, igual que en listarPorCondominio (DrizzleReservaRepository).
+  const area = await deps.areaComunRepository.buscarPorId(reserva.areaId);
+  if (!area || area.condominioId !== comando.condominioId) {
     throw new ReservaNoEncontradaError("La reserva no existe");
   }
   if (!puedeTransicionar(reserva.estado, comando.decision)) {
